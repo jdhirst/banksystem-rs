@@ -194,8 +194,10 @@ fn handle_screen<B: tui::backend::Backend>(
     })?;
 
     if let Event::Key(key) = crossterm::event::read()? {
-        // We need to clone the current screen to avoid borrow issues
-        match tui.get_screen().clone() {
+        // We need to match on a clone to avoid borrowing issues
+        let current_screen = tui.get_screen().clone();
+        
+        match current_screen {
             Screen::MainMenu => match key.code {
                 KeyCode::Char('1') => tui.set_screen(Screen::NewCustomer(create_customer_form())),
                 KeyCode::Char('2') => tui.set_screen(Screen::CustomerList),
@@ -205,7 +207,7 @@ fn handle_screen<B: tui::backend::Backend>(
                 _ => {}
             },
             Screen::NewCustomer(mut form) => {
-                handle_form_input(key.code, &mut form, tui, Screen::NewCustomer, |values, bank| {
+                handle_form_input(key.code, &mut form, tui, |values, bank| {
                     bank.create_customer(
                         values[0].clone(),
                         values[1].clone(),
@@ -215,7 +217,7 @@ fn handle_screen<B: tui::backend::Backend>(
                 });
             },
             Screen::NewAccount(mut form) => {
-                handle_form_input(key.code, &mut form, tui, Screen::NewAccount, |values, bank| {
+                handle_form_input(key.code, &mut form, tui, |values, bank| {
                     if let Ok(customer_id) = values[0].parse::<u64>() {
                         bank.create_account(customer_id, values[1].clone());
                     }
@@ -227,48 +229,10 @@ fn handle_screen<B: tui::backend::Backend>(
                 }
             }
         }
+        }
     }
 
     Ok(true)
-}
-
-fn handle_form_input<F, S>(
-    key_code: KeyCode, 
-    form: &mut Form, 
-    tui: &mut BankTui,
-    screen_constructor: S,
-    submit_handler: F
-) where 
-    F: FnOnce(Vec<String>, &mut crate::bank::Bank),
-    S: Fn(Form) -> Screen
-{
-    match key_code {
-        KeyCode::Tab => {
-            form.next_field();
-            tui.set_screen(screen_constructor(form.clone()));
-        },
-        KeyCode::BackTab => {
-            form.prev_field();
-            tui.set_screen(screen_constructor(form.clone()));
-        },
-        KeyCode::Char(c) => {
-            form.input(c);
-            tui.set_screen(screen_constructor(form.clone()));
-        },
-        KeyCode::Backspace => {
-            form.backspace();
-            tui.set_screen(screen_constructor(form.clone()));
-        },
-        KeyCode::Enter => {
-            if form.is_valid() {
-                let values = form.get_values();
-                submit_handler(values, tui.get_bank_mut());
-                tui.set_screen(Screen::MainMenu);
-            }
-        },
-        KeyCode::Esc => tui.set_screen(Screen::MainMenu),
-        _ => {}
-    }
 }
 
 fn render_title(screen: &Screen) -> Paragraph<'static> {

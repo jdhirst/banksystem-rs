@@ -31,7 +31,7 @@ impl Bank {
 
     pub fn create_account(&mut self, customer_id: u64, account_type: String) -> u64 {
         let id = self.next_id;
-        if let Some(customer) = self.customers.iter().find(|c| c.id == customer_id) {
+        if let Some(_customer) = self.customers.iter().find(|c| c.id == customer_id) {
             self.accounts.push(Account::new(
                 id,
                 customer_id,
