@@ -1,4 +1,4 @@
 pub mod bank;
-pub use bank::{Bank, Account};
+pub mod tui;
 
-// ...existing code...
+pub use bank::{Bank, Account, Customer, Transaction};
